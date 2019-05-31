@@ -1,0 +1,5 @@
+#!/bin/bash
+samtools sort ".bam" > ".sorted.bam"
+samtools index ".sorted.bam"
+pilon --genome reference.fa --bam ".sorted.bam" --variant --output "name"
+java -jar /locationtoreducevcf.jar -i ".vcf" -o ".reduced.vcf"
