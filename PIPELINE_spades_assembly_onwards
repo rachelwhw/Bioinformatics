@@ -1,0 +1,39 @@
+# create bash script
+vi pipeline
+
+#!/bin/bash
+
+# make script executable
+chmod u+x pipeline
+
+# check script executable
+ls -l
+
+vi pipeline
+
+# spades de novo assembly
+python3 /Users/rachel/Documents/Unicycler/SPAdes-3.13.1/SPAdes-3.13.1-Darwin/bin/spades.py -1 /Users/rachel/Documents/Seq_Run_P190174_233GB/bsg-ftp.well.ox.ac.uk/190425_K00181_0135_AH5CLTBBXY/EP82_1.fastq.gz -2 /Users/rachel/Documents/Seq_Run_P190174_233GB/bsg-ftp.well.ox.ac.uk/190425_K00181_0135_AH5CLTBBXY/EP82_2.fastq.gz -o spades_output_EP82
+
+# spades plasmid assembly
+/Users/rachel/Documents/Unicycler/SPAdes-3.13.1/SPAdes-3.13.1-Darwin/bin/spades.py --plasmid -1 /Users/rachel/Documents/Seq_Run_P190174_233GB/bsg-ftp.well.ox.ac.uk/190425_K00181_0135_AH5CLTBBXY/EP2_1.fastq.gz -2 /Users/rachel/Documents/Seq_Run_P190174_233GB/bsg-ftp.well.ox.ac.uk/190425_K00181_0135_AH5CLTBBXY/EP2_2.fastq.gz -o spades_plasmid_EP2
+
+# MLST
+mlst contigs.fasta
+
+# check mapping quality of .bam illumina sequences to PA01 reference genome
+/Users/rachel/samtools-1.9/samtools flagstat EP2.bam
+
+# loop mapping quality and print to new files for all
+for i in *.bam; do /Users/rachel/samtools-1.9/samtools flagstat $i > $i.out ;done
+
+# prokka annotation of spades contigs
+prokka --outdir EP20 /Users/rachel/Documents/Seq_Run_P190174_233GB/Contig_files/EP20_contigs.fasta
+
+# move all prokka .gff files from subdirectories to new single directory for roary analysis
+for i in `ls`; do mv $i"/"*".gff" $i/$i".gff"; done
+
+# ROARY analysis from all .gff in directory (move fasttree and custom roary scripts, roary_plots.py and create_pan_genome_plots.R, to directory)
+roary -e --mafft -p 8 *.gff
+python3 roary_plots.py core_gene_alignment.aln gene_presence_absence.csv
+FastTree –nt –gtr core_gene_alignment.aln > my_tree.newick
+./create_pan_genome_plots.R
