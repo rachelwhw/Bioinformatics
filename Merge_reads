@@ -1,0 +1,2 @@
+cat *_1.fq > all_1.fq
+cat *_2.fq > all_2.fq
