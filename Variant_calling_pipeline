@@ -1,0 +1,40 @@
+# Mapping .fq reads to reference genome and SNP/INDEL analysis
+
+# index reference genome
+/Users/rachel/bwa-0.7.17/bwa index ref.fasta
+
+# align reads to reference genome
+/Users/rachel/bwa-0.7.17/bwa mem ref.fasta EP254_1.fastq.gz EP254_2.fastq.gz > 254_aln_ref.sam
+samtools sort 254_aln_PA01.sam > 254_aln_PA01.bam
+samtools index 254_aln_PA01.bam
+
+# check mapping quality 
+samtools flagstat 254_aln_PA01.bam
+
+# write mapping quality to output file
+samtools flagstat sorted_254_aln.bam > sorted_254_aln.txt
+
+# get correctly aligned reads in output file
+samtools view -b -F 4 sorted_254_aln.bam > mapped_sorted_254_aln.bam
+
+# export reads that don't map for downstream analysis (ie what are they?)
+./bam2fastq --no-aligned --force --strict -o 254_unaligned_n2_#.fq sorted_254_aln.bam
+
+# re-index reference genome
+/Users/rachel/bwa-0.7.17/bwa index ref.fasta
+
+# variant calling pipeline
+bcftools mpileup -Ou -f ref.fasta mapped_sorted_254_aln.bam | bcftools call -mv -Oz –-ploidy 1 -o calls.vcf.gz
+bcftools index calls.vcf.gz
+bcftools norm -f ref.fasta calls.vcf.gz -Ob -o calls_norm.bcf
+bcftools filter --IndelGap 5 calls_norm.bcf -Ob -o calls_norm_filteredindels.bcf
+
+# consensus genome
+cat ref.fasta | bcftools consensus calls.vcf.gz > consensus.fa
+
+# filter variants and print to output files
+bcftools filter -i 'TYPE="snp" && MIN(DP)>20 && QUAL>20' calls_norm.bcf > calls_filter_snp.bcf
+bcftools filter -e'%TYPE="snp"' calls_norm_filteredindels.bcf > calls_onlyindels.bcf
+bcftools filter -i '%QUAL>20 && MIN(DP)>20' calls_onlyindels.bcf > calls_onlyindels_filterpass.bcf
+bcftools stats calls_filter_snp.bcf > calls_filter_snp_stats.txt
+bcftools stats calls_onlyindels_filterpass.bcf > calls_onlyindels_filterpass_stats.txt
