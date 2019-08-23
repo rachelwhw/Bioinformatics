@@ -1,0 +1,10 @@
+# Create new file with sequence length for all .fa 
+for i in *.fa; do grep -v ">" $i | wc | awk '{print $3-$1}' > $i.out;done
+# Print sequence lengths to new file with sequence ID + length (prints first line of file)
+head -n 1 *.fa.out > genome_lengths.txt
+
+# ALTERNATIVE GENOME SIZE COMMANDS
+grep -v ">" EP237.fa | wc | awk '{print $3-$1}'
+
+# Get length list for every contig
+seqkit fx2tab --length --name --header-line  EP2.fa
